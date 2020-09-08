@@ -5,7 +5,7 @@ Calculates the bacon number of a given actor
 ## Env setup
 ```
 python3 -m venv env
-source env/bin/activate
+source django_env/bin/activate
 pip install django
 ```
 
