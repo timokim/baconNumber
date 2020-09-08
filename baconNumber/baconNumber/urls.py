@@ -21,5 +21,5 @@ from myapp import views
 urlpatterns = [
     path('', views.index),
     path('preprocess', views.preprocess),
-    path('get_degree/<str:actor_name>', views.getDegree),
+    path('getBaconNumber/<str:actor_name>', views.getBaconNumber),
 ]

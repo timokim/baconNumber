@@ -4,6 +4,7 @@ from django.http import HttpResponse
 import ast
 import csv
 import json
+import gzip
 
 from myapp.models import BaconNumber
 
@@ -38,7 +39,8 @@ def populateDegree(setOfMovies, actorMovies, movieActors, remainingActors, remai
 def preprocess(request):
 	BaconNumber.objects.all().delete()
 	
-	with open('movie_data/credits.csv', newline='') as csv_file:
+	with gzip.open('movie_data/credits.csv.gz', mode="rt") as csv_file:
+	# with open('movie_data/credits.csv', newline='') as csv_file:
 		kevin_bacon_movies = set()
 		actor_dict = {} # name => (movieIDs)
 		movie_dict = {} # id => (actorNames)
@@ -69,7 +71,7 @@ def preprocess(request):
 	response = json.dumps([{'abc' : 'defg'}])
 	return HttpResponse(response, content_type='text/json')
 
-def getDegree(request, actor_name):
+def getBaconNumber(request, actor_name):
 	if request.method == 'GET':
 		try:
 			actor = BaconNumber.objects.get(name=actor_name)
