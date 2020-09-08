@@ -8,51 +8,53 @@ import gzip
 
 from myapp.models import BaconNumber
 
+# initial index screen
 def index(request):
-	response = json.dumps([{'abc' : 'def'}])
+	response = json.dumps([{'URL to compute the Bacon Number of all actors' : '/preprocess'}, {'URL to query the Bacon Number of an actor' : '/getBaconNumber/<str:actor_name>'}])
 	return HttpResponse(response, content_type='text/json')
 
-def populateDegree(setOfMovies, actorMovies, movieActors, remainingActors, remainingMovies, currentDegree):
+# Recursively takes every connected actor and saves into SQLite3 DB entries the actor & his/her respective bacon number
+def calculateBaconNumber(setOfMovies, actorMovies, movieActors, remainingActors, remainingMovies, currentBaconNumber):
 	if not (setOfMovies and remainingMovies):
 		return
-	# print(f"starting level {currentDegree} with movies {setOfMovies}")
-	current_degree_actors = []
+
+	new_actors = []
+	# Compile a list of new actors from the given set of movies
 	for movie in setOfMovies:
 		remainingMovies.remove(movie)
 		for actor in movieActors[movie]:
 			if actor in remainingActors:
 				remainingActors.remove(actor)
-				current_degree_actors.append(actor)
-	# print(f"list of actors: {current_degree_actors}")
-	setOfNextDegreeMovies = set()
-	for actor in current_degree_actors:
-		# 	actorMovieMapping = ActorMovieMapping(actorID=actor, movieID=movie)
-		actorDegree = BaconNumber(name = actor, baconNumber = currentDegree)
+				new_actors.append(actor)
+
+	# Save the new actors & their bacon number + compile a list of new movies of the new actors.
+	set_of_new_movies = set()
+	for actor in new_actors:
+		actorDegree = BaconNumber(name = actor, baconNumber = currentBaconNumber)
 		actorDegree.save()
-		# print(f"actor {actor} is degree {currentDegree}")
 		for movie in actorMovies[actor]:
 			if movie in remainingMovies:
-				setOfNextDegreeMovies.add(movie)
+				set_of_new_movies.add(movie)
 
-	populateDegree(setOfNextDegreeMovies, actorMovies, movieActors, remainingActors, remainingMovies, currentDegree + 1)
+	calculateBaconNumber(set_of_new_movies, actorMovies, movieActors, remainingActors, remainingMovies, currentBaconNumber + 1)
 
+# preprocesses the data into dictionaries/sets for population.
 def preprocess(request):
 	BaconNumber.objects.all().delete()
 	
+	# Read gzipped file
 	with gzip.open('movie_data/credits.csv.gz', mode="rt") as csv_file:
-	# with open('movie_data/credits.csv', newline='') as csv_file:
 		kevin_bacon_movies = set()
-		actor_dict = {} # name => (movieIDs)
-		movie_dict = {} # id => (actorNames)
-		actorSet = set()
-		movieSet = set()
+		actor_dict = {}
+		movie_dict = {}
+		actor_set = set()
+		movie_set = set()
 		credits_reader = csv.reader(csv_file, delimiter=',')
 		for lineno, credits in enumerate(credits_reader):
 			cast_info = ast.literal_eval(credits[0])
 			movie_id = credits[2]
-			# print(f"adding movie: # {lineno} which is movie id {movie_id}")
 			movie_dict[movie_id] = []
-			movieSet.add(movie_id)
+			movie_set.add(movie_id)
 			for cast in cast_info:
 				actor_name = cast["name"]
 				if actor_name == "Kevin Bacon":
@@ -61,16 +63,18 @@ def preprocess(request):
 					movie_dict[movie_id].append(actor_name)
 					if not actor_dict.get(actor_name):
 						actor_dict[actor_name] = [movie_id]
-						actorSet.add(actor_name)
+						actor_set.add(actor_name)
 					else:
 						actor_dict[actor_name].append(movie_id)
 
-	kevinBacon = BaconNumber(name = "Kevin Bacon", baconNumber = 0)
-	kevinBacon.save()
-	populateDegree(kevin_bacon_movies, actor_dict, movie_dict, actorSet, movieSet, 1)
-	response = json.dumps([{'abc' : 'defg'}])
+	# Save the initial Kevin Bacon
+	kevin_bacon = BaconNumber(name = "Kevin Bacon", baconNumber = 0)
+	kevin_bacon.save()
+	calculateBaconNumber(kevin_bacon_movies, actor_dict, movie_dict, actor_set, movie_set, 1)
+	response = json.dumps([{'Preprocessing' : 'complete'}])
 	return HttpResponse(response, content_type='text/json')
 
+# Function to return the Bacon Number of the actor specified
 def getBaconNumber(request, actor_name):
 	if request.method == 'GET':
 		try:

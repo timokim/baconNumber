@@ -26,6 +26,7 @@ python3 manage.py runserver
 # How to work with the API
 Use the browser to access the django server API via the following URLs:
 ```
-localhost:8000/preprocess
-localhost:8000/getBaconNumber/<actor_name>
+localhost:8000/ = Instruction screen
+localhost:8000/preprocess = Kicks off preprocessing of data
+localhost:8000/getBaconNumber/<actor_name> = Queries bacon number of given actors
 ```
